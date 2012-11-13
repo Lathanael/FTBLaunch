@@ -62,10 +62,10 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 		packPanels = new ArrayList<JPanel>();
 
 		// TODO: Set loading animation while we wait
-		//		try {
-		//			loadingImage = new JLabel(new ImageIcon(new URL("http://cdn.nirmaltv.com/images/generatorphp-thumb.gif")));
-		//		} catch (MalformedURLException e1) { e1.printStackTrace(); }
-		//		loadingImage.setLocation(58, 36);
+//		try {
+//			loadingImage = new JLabel(new ImageIcon(new URL("http://cdn.nirmaltv.com/images/generatorphp-thumb.gif")));
+//		} catch (MalformedURLException e1) { e1.printStackTrace(); }
+//		loadingImage.setLocation(58, 36);
 
 		packs = new JPanel();
 		packs.setLayout(null);
@@ -241,6 +241,27 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 					currentPacks.put(counter, pack);
 					counter++;
 				}
+			}
+		}
+		updatePacks();
+	}
+	
+	public static void searchPacks(String search) {
+		System.out.println("Searching Packs for : " + search);
+		packPanels.clear();
+		packs.removeAll();
+		currentPacks.clear();
+		packs.setMinimumSize(new Dimension(420, 0));
+		packs.setPreferredSize(new Dimension(420, 0));
+		packs.setLayout(null);
+		packs.setOpaque(false);
+		int counter = 0;
+		selectedPack = 0;
+		for(ModPack pack : ModPack.getPackArray()) {
+			if(pack.getName().equalsIgnoreCase(search) || pack.getAuthor().equalsIgnoreCase(search)) {
+				addPack(pack);
+				currentPacks.put(counter, pack);
+				counter++;
 			}
 		}
 		updatePacks();

@@ -22,6 +22,7 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
 import net.ftb.data.Map;
+import net.ftb.data.ModPack;
 import net.ftb.data.events.MapListener;
 import net.ftb.gui.LaunchFrame;
 import net.ftb.gui.dialogs.FilterDialog;
@@ -42,6 +43,7 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 	private static boolean mapsAdded = false;
 	public static String type = "Client", origin = "All";
 	private final MapsPane instance = this;
+	private static JTextArea mapInfo;
 
 	public static boolean loaded = false;
 
@@ -103,6 +105,23 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		mapsScroll.setOpaque(false);
 		mapsScroll.setViewportView(maps);
 		add(mapsScroll);
+
+		mapInfo = new JTextArea();
+		mapInfo.setEditable(false);
+		mapInfo.setWrapStyleWord(true);
+		mapInfo.setLineWrap(true);
+		mapInfo.setBounds(420, 210, 410, 90);
+		mapInfo.setBackground(UIManager.getColor("control").darker().darker());
+		add(mapInfo);
+
+		JScrollPane infoScroll = new JScrollPane();
+		infoScroll.setBounds(420, 210, 410, 90);
+		infoScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		infoScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+		infoScroll.setWheelScrollingEnabled(true);
+		infoScroll.setViewportView(mapInfo);
+		infoScroll.setOpaque(false);
+		add(infoScroll);
 	}
 
 	@Override public void onVisible() { }
@@ -204,6 +223,27 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		}
 		updateMaps();
 	}
+	
+	public static void searchMaps(String search) {
+		System.out.println("Searching Maps for : " + search);
+		mapPanels.clear();
+		maps.removeAll();
+		currentMaps.clear();
+		maps.setMinimumSize(new Dimension(420, 0));
+		maps.setPreferredSize(new Dimension(420, 0));
+		maps.setLayout(null);
+		maps.setOpaque(false);
+		int counter = 0;
+		selectedMap = 0;
+		for(Map map : Map.getMapArray()) {
+			if(map.getName().contains(search) || map.getAuthor().equalsIgnoreCase(search)) {
+				addMap(map);
+				currentMaps.put(counter, map);
+				counter++;
+			}
+		}
+		updateMaps();
+	}
 
 	private static void updateMaps() {
 		for (int i = 0; i < mapPanels.size(); i++) {
@@ -211,6 +251,7 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 				mapPanels.get(i).setBackground(UIManager.getColor("control").darker().darker());
 				splash.setIcon(new ImageIcon(Map.getMap(getIndex()).getImage()));
 				mapPanels.get(i).setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+				mapInfo.setText(Map.getMap(getIndex()).getInfo());
 			} else {
 				mapPanels.get(i).setBackground(UIManager.getColor("control"));
 				mapPanels.get(i).setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

@@ -54,6 +54,7 @@ import net.ftb.data.Settings;
 import net.ftb.data.UserManager;
 import net.ftb.gui.dialogs.LauncherUpdateDialog;
 import net.ftb.gui.dialogs.PasswordDialog;
+import net.ftb.gui.dialogs.PlayOfflineDialog;
 import net.ftb.gui.dialogs.ProfileAdderDialog;
 import net.ftb.gui.dialogs.ProfileEditorDialog;
 import net.ftb.gui.panes.ILauncherPane;
@@ -79,9 +80,9 @@ import net.ftb.workers.LoginWorker;
 
 public class LaunchFrame extends JFrame {
 
-	private static String version = "1.0.0";
-	private static int buildNumber = 100;
-	private static final String FORGENAME = "MinecraftForge.zip";
+	private static String version = "1.0.2";
+	private static int buildNumber = 102;
+	public static final String FORGENAME = "MinecraftForge.zip";
 	private NewsPane newsPane;
 	private OptionsPane optionsPane;
 	private ModpacksPane modPacksPane;
@@ -192,8 +193,8 @@ public class LaunchFrame extends JFrame {
 				ModPack.addListener(frame.modPacksPane);
 				ModPack.loadAll();
 
-				//				Map.addListener(frame.mapsPane);
-				//				Map.loadAll();
+				Map.addListener(frame.mapsPane);
+				Map.loadAll();
 
 				//				TexturePack.addListener(frame.tpPane);
 				//				TexturePack.loadAll();
@@ -320,6 +321,10 @@ public class LaunchFrame extends JFrame {
 				if(users.getSelectedIndex() > 1 && modPacksPane.packPanels.size() > 0) {
 					saveSettings();
 					doLogin(UserManager.getUsername(users.getSelectedItem().toString()), UserManager.getPassword(users.getSelectedItem().toString()));
+				} else {
+					if(users.getSelectedIndex() <= 1) {
+						ErrorUtils.tossError("Please select a profile!");
+					}
 				}
 			}
 		});
@@ -330,11 +335,15 @@ public class LaunchFrame extends JFrame {
 		serverbutton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				if(modPacksPane.packPanels.size() > 0 && getSelectedModIndex() >= 0) {
-					try {
-						hLink(event, new URI(LaunchFrame.getCreeperhostLink(ModPack.getPack(LaunchFrame.getSelectedModIndex()).getServerUrl())));
-					} catch (URISyntaxException e) { 
-					} catch (NoSuchAlgorithmException e) { }
+				if(!ModPack.getPack(LaunchFrame.getSelectedModIndex()).getServerUrl().isEmpty()) {
+					if(modPacksPane.packPanels.size() > 0 && getSelectedModIndex() >= 0) {
+						try {
+							hLink(event, new URI(LaunchFrame.getCreeperhostLink(ModPack.getPack(LaunchFrame.getSelectedModIndex()).getServerUrl())));
+						} catch (URISyntaxException e) { 
+						} catch (NoSuchAlgorithmException e) { }
+					}
+				} else {
+					ErrorUtils.tossError("No server version available!");
 				}
 			}
 		});
@@ -424,7 +433,6 @@ public class LaunchFrame extends JFrame {
 
 		tabbedPane.add(mapsPane, 3);
 		tabbedPane.setIconAt(3, new ImageIcon(this.getClass().getResource("/image/tabs/maps.png")));
-		tabbedPane.setEnabledAt(3, false);
 
 		tabbedPane.add(tpPane, 4);
 		tabbedPane.setIconAt(4, new ImageIcon(this.getClass().getResource("/image/tabs/texturepacks.png")));
@@ -447,7 +455,7 @@ public class LaunchFrame extends JFrame {
 	/**
 	 * call this to login
 	 */
-	public void doLogin(String username, String password) {
+	public void doLogin(final String username, String password) {
 		if(password.isEmpty()) {
 			PasswordDialog p = new PasswordDialog(this, true);
 			p.setVisible(true);
@@ -463,8 +471,8 @@ public class LaunchFrame extends JFrame {
 		tabbedPane.setEnabledAt(0, false);
 		tabbedPane.setEnabledAt(1, false);
 		tabbedPane.setEnabledAt(2, false);
-		//		tabbedPane.setEnabledAt(3, false);
-		//		tabbedPane.setEnabledAt(4, false);
+		tabbedPane.setEnabledAt(3, false);
+		tabbedPane.setEnabledAt(4, false);
 		tabbedPane.getSelectedComponent().setEnabled(false);
 
 		launch.setEnabled(false);
@@ -483,14 +491,20 @@ public class LaunchFrame extends JFrame {
 				try {
 					responseStr = get();
 				} catch (InterruptedException err) {
-					Logger.logWarn("Exception occurred",err); 
+					ErrorUtils.tossError("Exception occurred");
+					enableObjects();
 					return;
 				} catch (ExecutionException err) {
 					if (err.getCause() instanceof IOException) {
-						Logger.logWarn("Login failed due IOException",err);
+						ErrorUtils.tossError("Login failed due IOException");
+						PlayOfflineDialog d = new PlayOfflineDialog("mcDown", username);
+						d.setVisible(true);
 					} else if (err.getCause() instanceof MalformedURLException) {
-						Logger.logWarn("Login failed due malformed URL",err); 
+						ErrorUtils.tossError("Login failed due malformed URL"); 
+						PlayOfflineDialog d = new PlayOfflineDialog("mcDown", username);
+						d.setVisible(true);
 					}
+					enableObjects();
 					return;
 				}
 
@@ -677,9 +691,7 @@ public class LaunchFrame extends JFrame {
 		if(!source.exists()) {
 			source = new File(installpath, "temp/" + pack.getDir() + "/minecraft");
 		}
-		FileUtils.copyFolder(new File(source, "mods"), new File(installpath + "/" + pack.getDir() + "/minecraft/mods/"));
-		FileUtils.copyFolder(new File(source, "coremods"), new File(installpath + "/" + pack.getDir() + "/minecraft/coremods/"));
-		FileUtils.copyFolder(new File(source, "config"), new File(installpath + "/" + pack.getDir() + "/minecraft/config/"));
+		FileUtils.copyFolder(source, new File(installpath + "/" + pack.getDir() + "/minecraft/"));
 		FileUtils.copyFolder(new File(installpath + "/temp/" + pack.getDir() + "/instMods/"), new File(installpath + "/" + pack.getDir() + "/instMods/"));
 	}
 
@@ -781,7 +793,7 @@ public class LaunchFrame extends JFrame {
 		tabbedPane.setEnabledAt(0, true);
 		tabbedPane.setEnabledAt(1, true);
 		tabbedPane.setEnabledAt(2, true);
-		//		tabbedPane.setEnabledAt(3, true);
+		tabbedPane.setEnabledAt(3, true);
 		//		tabbedPane.setEnabledAt(4, true);
 		tabbedPane.getSelectedComponent().setEnabled(true);
 		updateFooter();
