@@ -18,7 +18,7 @@ public class Settings extends Properties {
 	private boolean forceUpdate;
 
 	public static void initSettings() throws IOException {
-		File cfgFile = new File(PathUtils.combine(OSUtils.getDefInstallPath(), "ftblaunch.cfg"));
+		File cfgFile = new File(OSUtils.getDynamicStorageLocation(), "ftblaunch.cfg");
 		if (cfgFile.exists()) {
 			LoadSettings(cfgFile);
 			return;
@@ -44,14 +44,6 @@ public class Settings extends Properties {
 
 	public void save() throws IOException {
 		store(new FileOutputStream(configPath), "FTBLaunch Config File");
-	}
-
-	public String getRamMin() {
-		return getProperty("ramMin", Integer.toString(256));
-	}
-
-	public void setRamMin(String min) {
-		setProperty("ramMin", min);
 	}
 
 	public String getRamMax() {

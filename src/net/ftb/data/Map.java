@@ -18,6 +18,7 @@ import javax.imageio.ImageIO;
 
 import net.ftb.data.events.MapListener;
 import net.ftb.gui.LaunchFrame;
+import net.ftb.util.OSUtils;
 import net.ftb.workers.MapLoader;
 
 public class Map {
@@ -64,7 +65,7 @@ public class Map {
 		pack = compatible;
 		this.mcversion = mcversion;
 		this.mapname = mapname;
-		String installPath = Settings.getSettings().getInstallPath();
+		String installPath = OSUtils.getDynamicStorageLocation();
 		this.info = info;
 		logoName = logo;
 		imageName = image;
@@ -84,8 +85,24 @@ public class Map {
 			ImageIO.write(tempImg, "png", new File(dir, image));
 			tempImg.flush();
 		} else {
-			this.logo = Toolkit.getDefaultToolkit().createImage(dir.getPath() + File.separator + logo);
-			this.image = Toolkit.getDefaultToolkit().createImage(dir.getPath() + File.separator + image);
+			if(new File(dir, logo).exists()) {
+				this.logo = Toolkit.getDefaultToolkit().createImage(dir.getPath() + File.separator + logo);
+			} else {
+				url_ = new URL(LaunchFrame.getCreeperhostLink(logo));
+				this.logo = Toolkit.getDefaultToolkit().createImage(url_);
+				BufferedImage tempImg = ImageIO.read(url_);
+				ImageIO.write(tempImg, "png", new File(dir, logo));
+				tempImg.flush();
+			}
+			if(new File(dir, image).exists()) {
+				this.image = Toolkit.getDefaultToolkit().createImage(dir.getPath() + File.separator + image);
+			} else {
+				url_ = new URL(LaunchFrame.getCreeperhostLink(image));
+				this.image = Toolkit.getDefaultToolkit().createImage(url_);
+				BufferedImage tempImg = ImageIO.read(url_);
+				ImageIO.write(tempImg, "png", new File(dir, image));
+				tempImg.flush();
+			}
 		}
 		url_ = new URL(LaunchFrame.getCreeperhostLink(url));
 		size = url_.openConnection().getContentLength();
@@ -95,7 +112,7 @@ public class Map {
 		boolean result = false;
 		try {
 			if(!verFile.exists()) {
-				new File(Settings.getSettings().getInstallPath(), "temp" + File.separator + "Maps" + File.separator + mapname + File.separator).mkdirs();
+				new File(OSUtils.getDynamicStorageLocation(), "temp" + File.separator + "Maps" + File.separator + mapname + File.separator).mkdirs();
 				verFile.createNewFile();
 				result = false;
 			}

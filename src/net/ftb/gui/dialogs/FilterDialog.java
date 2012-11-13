@@ -13,6 +13,7 @@ import javax.swing.JPanel;
 import net.ftb.gui.LaunchFrame;
 import net.ftb.gui.panes.MapsPane;
 import net.ftb.gui.panes.ModpacksPane;
+import net.ftb.gui.panes.TexturepackPane;
 
 public class FilterDialog extends JDialog {
 	private JPanel panel = new JPanel();
@@ -117,14 +118,51 @@ public class FilterDialog extends JDialog {
 			}
 		});
 	}
+	
+	public FilterDialog(final TexturepackPane instance) {
+		super(LaunchFrame.getInstance(), true);
+		// TODO: Overhaul Filter dialog towards texture packs
+		// Because more than likely ftb won't have a texture pack, and there is no server versions.
+		applyButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				String origin = "";
+				switch(originBox.getSelectedIndex()) {
+				case 0:
+					origin = "All";
+					break;
+				case 1:
+					origin = "FTB";
+					break;
+				case 2:
+					origin = "3rd Party";
+					break;
+				}
+				instance.origin = origin;
+				instance.updateFilter();
+				setVisible(false);
+			}
+		});
+		cancelButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				setVisible(false);
+			}
+		});
+		searchButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				SearchDialog sd = new SearchDialog(instance);
+				sd.setVisible(true);
+			}
+		});
+	}
 
 	private void setupGui() {
 		setIconImage(Toolkit.getDefaultToolkit().getImage(this.getClass().getResource("/image/logo_ftb.png")));
 		setTitle("Filter");
-//		setBounds(300, 300, 230, 175);
 		setBounds(300, 300, 230, 140);
 		setResizable(false);
-//		panel.setBounds(0, 0, 230, 175);
 		panel.setBounds(0, 0, 230, 140);
 		panel.setLayout(null);
 		setContentPane(panel);

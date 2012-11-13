@@ -7,12 +7,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -20,6 +22,8 @@ import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 
 import net.ftb.data.Map;
 import net.ftb.data.ModPack;
@@ -43,7 +47,7 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 	private static boolean mapsAdded = false;
 	public static String type = "Client", origin = "All";
 	private final MapsPane instance = this;
-	private static JTextArea mapInfo;
+	private static JEditorPane mapInfo;
 
 	public static boolean loaded = false;
 
@@ -106,10 +110,19 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		mapsScroll.setViewportView(maps);
 		add(mapsScroll);
 
-		mapInfo = new JTextArea();
+		mapInfo = new JEditorPane();
 		mapInfo.setEditable(false);
-		mapInfo.setWrapStyleWord(true);
-		mapInfo.setLineWrap(true);
+		mapInfo.setContentType("text/html");
+		mapInfo.addHyperlinkListener(new HyperlinkListener() {
+			@Override
+			public void hyperlinkUpdate(HyperlinkEvent event) {
+				if(event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+					try {
+						LaunchFrame.getInstance().hLink(event.getURL().toURI());
+					} catch (URISyntaxException e) { }
+				}
+			}
+		});
 		mapInfo.setBounds(420, 210, 410, 90);
 		mapInfo.setBackground(UIManager.getColor("control").darker().darker());
 		add(mapInfo);
@@ -122,6 +135,7 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		infoScroll.setViewportView(mapInfo);
 		infoScroll.setOpaque(false);
 		add(infoScroll);
+		sortMaps();
 	}
 
 	@Override public void onVisible() { }
@@ -188,7 +202,7 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		updateMaps();
 	}
 
-	private static void sortMaps() {
+	public static void sortMaps() {
 		mapPanels.clear();
 		maps.removeAll();
 		currentMaps.clear();
@@ -198,26 +212,25 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		maps.setOpaque(false);
 		int counter = 0;
 		selectedMap = 0;
-		if(origin.equalsIgnoreCase("all")) {
-			for(Map map : Map.getMapArray()) {
-				addMap(map);
-				currentMaps.put(counter, map);
-				counter++;
-			}
-		} else if(origin.equalsIgnoreCase("ftb")) {
-			for(Map map : Map.getMapArray()) {
-				if(map.getAuthor().equalsIgnoreCase("the ftb team")) {
+
+		for(Map map : Map.getMapArray()) {
+			if(map.getCompatible().equals(ModPack.getPack(LaunchFrame.getSelectedModIndex()).getDir())) {
+				if(origin.equalsIgnoreCase("all")) {
 					addMap(map);
 					currentMaps.put(counter, map);
 					counter++;
-				}
-			}
-		} else {
-			for(Map map : Map.getMapArray()) {
-				if(!map.getAuthor().equalsIgnoreCase("the ftb team")) {
-					addMap(map);
-					currentMaps.put(counter, map);
-					counter++;
+				} else if(origin.equalsIgnoreCase("ftb")) {
+					if(map.getAuthor().equalsIgnoreCase("the ftb team")) {
+						addMap(map);
+						currentMaps.put(counter, map);
+						counter++;
+					}
+				} else {
+					if(!map.getAuthor().equalsIgnoreCase("the ftb team")) {
+						addMap(map);
+						currentMaps.put(counter, map);
+						counter++;
+					}
 				}
 			}
 		}
@@ -245,7 +258,7 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		updateMaps();
 	}
 
-	private static void updateMaps() {
+	public static void updateMaps() {
 		for (int i = 0; i < mapPanels.size(); i++) {
 			if(selectedMap == i) {
 				mapPanels.get(i).setBackground(UIManager.getColor("control").darker().darker());

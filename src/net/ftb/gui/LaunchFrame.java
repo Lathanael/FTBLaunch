@@ -80,8 +80,8 @@ import net.ftb.workers.LoginWorker;
 
 public class LaunchFrame extends JFrame {
 
-	private static String version = "1.0.2";
-	private static int buildNumber = 102;
+	private static String version = "1.0.5";
+	private static int buildNumber = 105;
 	public static final String FORGENAME = "MinecraftForge.zip";
 	private NewsPane newsPane;
 	private OptionsPane optionsPane;
@@ -135,8 +135,20 @@ public class LaunchFrame extends JFrame {
 				+ " by " + System.getProperty("java.vm.vendor"));
 		Logger.logInfo("OS: "+System.getProperty("os.arch") + " " + System.getProperty("os.name") + " " + System.getProperty("os.version"));
 		Logger.logInfo("Working directory: " + System.getProperty("user.dir"));
-		// TODO: Format this to MB or GB?
-		Logger.logInfo("Max Memory: " + Runtime.getRuntime().maxMemory());
+		switch(OSUtils.getCurrentOS()) {
+		case WINDOWS:
+			Logger.logInfo(System.getenv("APPDATA"));
+			break;
+		case MACOSX:
+			Logger.logInfo(System.getProperty("user.home") + "/Library/Application Support");
+			break;
+		case UNIX:
+			Logger.logInfo(System.getProperty("user.home"));
+			break;
+		default:
+			Logger.logInfo(System.getProperty("user.dir"));
+			break;
+		}
 
 		EventQueue.invokeLater(new Runnable() {
 			@Override
@@ -173,15 +185,19 @@ public class LaunchFrame extends JFrame {
 				} catch (IOException e) { }
 
 				// Setup localizations
-				I18N.setLocale(Settings.getSettings().getLocale());
 				I18N.setupLocale();
+				I18N.setLocale(Settings.getSettings().getLocale());
 
 				File installDir = new File(Settings.getSettings().getInstallPath());
 				if (!installDir.exists()) {
 					installDir.mkdirs();
 				}
+				File dynamicDir = new File(OSUtils.getDynamicStorageLocation());
+				if(!dynamicDir.exists()) {
+					dynamicDir.mkdirs();
+				}
 
-				userManager = new UserManager(new File(installDir, "logindata"));
+				userManager = new UserManager(new File(OSUtils.getDynamicStorageLocation(), "logindata"));
 
 				LauncherConsole con = new LauncherConsole();
 				con.setVisible(true);
@@ -236,7 +252,7 @@ public class LaunchFrame extends JFrame {
 			@Override 
 			public void mouseClicked(MouseEvent event) {
 				try {
-					hLink(event, new URI("http://www.feed-the-beast.com"));
+					hLink(new URI("http://www.feed-the-beast.com"));
 				} catch (URISyntaxException e) { }
 			}
 			@Override public void mouseReleased(MouseEvent arg0) { }
@@ -251,7 +267,7 @@ public class LaunchFrame extends JFrame {
 			@Override 
 			public void mouseClicked(MouseEvent event) {
 				try {
-					hLink(event, new URI("http://www.creeperhost.net/aff.php?aff=293"));
+					hLink(new URI("http://www.creeperhost.net/aff.php?aff=293"));
 				} catch (URISyntaxException e) { }
 			}
 			@Override public void mouseReleased(MouseEvent arg0) { }
@@ -338,7 +354,7 @@ public class LaunchFrame extends JFrame {
 				if(!ModPack.getPack(LaunchFrame.getSelectedModIndex()).getServerUrl().isEmpty()) {
 					if(modPacksPane.packPanels.size() > 0 && getSelectedModIndex() >= 0) {
 						try {
-							hLink(event, new URI(LaunchFrame.getCreeperhostLink(ModPack.getPack(LaunchFrame.getSelectedModIndex()).getServerUrl())));
+							hLink(new URI(LaunchFrame.getCreeperhostLink(ModPack.getPack(LaunchFrame.getSelectedModIndex()).getServerUrl())));
 						} catch (URISyntaxException e) { 
 						} catch (NoSuchAlgorithmException e) { }
 					}
@@ -370,7 +386,7 @@ public class LaunchFrame extends JFrame {
 			public void actionPerformed(ActionEvent event) {
 				if(mapsPane.mapPanels.size() > 0 && getSelectedMapIndex() >= 0) {
 					try {
-						hLink(event, new URI(LaunchFrame.getCreeperhostLink(Map.getMap(LaunchFrame.getSelectedMapIndex()).getUrl())));
+						hLink(new URI(LaunchFrame.getCreeperhostLink(Map.getMap(LaunchFrame.getSelectedMapIndex()).getUrl())));
 					} catch (URISyntaxException e) { 
 					} catch (NoSuchAlgorithmException e) { }
 				}
@@ -662,8 +678,7 @@ public class LaunchFrame extends JFrame {
 	 * @param password - the MC password
 	 */
 	protected void launchMinecraft(String workingDir, String username, String password) {
-		int result = MinecraftLauncher.launchMinecraft(workingDir, username, password, FORGENAME, Settings.getSettings().getRamMin(),
-				Settings.getSettings().getRamMax());
+		int result = MinecraftLauncher.launchMinecraft(workingDir, username, password, FORGENAME, Settings.getSettings().getRamMax());
 		Logger.logInfo("MinecraftLauncher said: "+result);
 		if (result > 0) {
 			System.exit(0);
@@ -676,6 +691,7 @@ public class LaunchFrame extends JFrame {
 	 */
 	protected void installMods(String modPackName) throws IOException {
 		String installpath = Settings.getSettings().getInstallPath();
+		String temppath = OSUtils.getDynamicStorageLocation();
 		ModPack pack = ModPack.getPack(modPacksPane.getSelectedModIndex());
 		Logger.logInfo("dirs mk'd");
 		if(new File(installpath, pack.getDir() + "/instMods/").exists()) {
@@ -687,12 +703,12 @@ public class LaunchFrame extends JFrame {
 		if(new File(installpath, pack.getDir() + "/minecraft/coremods/").exists()) {
 			new File(installpath, pack.getDir() + "/minecraft/coremods/").delete();
 		}
-		File source = new File(installpath, "temp/" + pack.getDir() + "/.minecraft");
+		File source = new File(temppath, "temp/" + pack.getDir() + "/.minecraft");
 		if(!source.exists()) {
-			source = new File(installpath, "temp/" + pack.getDir() + "/minecraft");
+			source = new File(temppath, "temp/" + pack.getDir() + "/minecraft");
 		}
 		FileUtils.copyFolder(source, new File(installpath + "/" + pack.getDir() + "/minecraft/"));
-		FileUtils.copyFolder(new File(installpath + "/temp/" + pack.getDir() + "/instMods/"), new File(installpath + "/" + pack.getDir() + "/instMods/"));
+		FileUtils.copyFolder(new File(temppath + "/temp/" + pack.getDir() + "/instMods/"), new File(installpath + "/" + pack.getDir() + "/instMods/"));
 	}
 
 	/**
@@ -819,34 +835,12 @@ public class LaunchFrame extends JFrame {
 		} catch (IOException e) { Logger.logError("Exception occurred", e); }
 	}
 
-
-	public void hLink(MouseEvent me, URI uri) {
+	public void hLink(URI uri) {
 		if(Desktop.isDesktopSupported()) {
 			Desktop desktop = Desktop.getDesktop();
 			try {
 				desktop.browse(uri);
 			} catch(Exception exc) { Logger.logError("Exception occurred durring opening Link",exc); }
-		} else if (OSUtils.getCurrentOS() == OSUtils.OS.UNIX) {
-			File xdg = new File("/usr/bin/xdg-open");
-			if (xdg.exists()) {
-				ProcessBuilder pb = new ProcessBuilder("/usr/bin/xdg-open", uri.toString());
-				try {
-					pb.start();
-				} catch (IOException e) { }
-			} else {
-				Logger.logWarn("Desktop not supported.");
-			}
-		} else {
-			Logger.logWarn("Desktop not supported.");
-		}
-	}
-
-	public void hLink(ActionEvent ae, URI uri) {
-		if(Desktop.isDesktopSupported()) {
-			Desktop desktop = Desktop.getDesktop();
-			try {
-				desktop.browse(uri);
-			} catch (IOException e) { e.printStackTrace(); }
 		} else if (OSUtils.getCurrentOS() == OSUtils.OS.UNIX) {
 			File xdg = new File("/usr/bin/xdg-open");
 			if (xdg.exists()) {
