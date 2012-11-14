@@ -13,7 +13,6 @@ import java.util.HashMap;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -26,11 +25,11 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
 import net.ftb.data.Map;
-import net.ftb.data.ModPack;
 import net.ftb.data.events.MapListener;
 import net.ftb.gui.LaunchFrame;
 import net.ftb.gui.dialogs.FilterDialog;
 import net.ftb.locale.I18N;
+import net.ftb.log.Logger;
 
 public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 	private static final long serialVersionUID = 1L;
@@ -42,11 +41,11 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 
 	private static JLabel typeLbl;
 	private JButton filter;
-	private static JComboBox mapType;
 	private static int selectedMap = 0;
 	private static boolean mapsAdded = false;
-	public static String type = "Client", origin = "All";
+	public static String type = "Client", origin = "All", compatible = "All";
 	private final MapsPane instance = this;
+
 	private static JEditorPane mapInfo;
 
 	public static boolean loaded = false;
@@ -69,7 +68,6 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		maps.setLayout(null);
 		maps.setOpaque(false);
 
-		// stub for a real wait message
 		final JPanel p = new JPanel();
 		p.setBounds(0, 0, 420, 55);
 		p.setLayout(null);
@@ -87,8 +85,8 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		});
 		add(filter);
 
-		typeLbl = new JLabel("<html><body><strong><font color=rgb\"(243,119,31)\">Filter:</strong></font> " + type + "<font color=rgb\"(243,119,31)\"> / </font>" + origin +"</body></html>");
-		typeLbl.setBounds(115, 5, 175, 25);
+		typeLbl = new JLabel("<html><body><strong><font color=rgb\"(243,119,31)\">Filter:</strong></font> " + type + "<font color=rgb\"(243,119,31)\"> / </font>" + origin + "<font color=rgb\"(243,119,31)\"> / </font>" + compatible + "</body></html>");
+		typeLbl.setBounds(115, 5, 295, 25);
 		typeLbl.setHorizontalAlignment(SwingConstants.CENTER);
 		add(typeLbl);
 
@@ -135,7 +133,6 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		infoScroll.setViewportView(mapInfo);
 		infoScroll.setOpaque(false);
 		add(infoScroll);
-		sortMaps();
 	}
 
 	@Override public void onVisible() { }
@@ -150,7 +147,7 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		}
 
 		final int mapIndex = mapPanels.size();
-		System.out.println("Adding map " + getMapNum());
+		Logger.logInfo("Adding map " + getMapNum());
 		final JPanel p = new JPanel();
 		p.setBounds(0, (mapIndex * 55), 420, 55);
 		p.setLayout(null);
@@ -175,7 +172,10 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 				updateMaps();
 			}
 			@Override public void mouseReleased(MouseEvent e) { }
-			@Override public void mousePressed(MouseEvent e) { }
+			@Override public void mousePressed(MouseEvent e) { 
+				selectedMap = mapIndex;
+				updateMaps();
+			}
 			@Override public void mouseExited(MouseEvent e) { }
 			@Override public void mouseEntered(MouseEvent e) { }
 		};
@@ -187,11 +187,11 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		mapPanels.add(p);
 		maps.add(p);
 		if(origin.equalsIgnoreCase("all")) {
-			maps.setMinimumSize(new Dimension(420, (Map.getMapArray().size()) * 55));
-			maps.setPreferredSize(new Dimension(420, (Map.getMapArray().size()) * 55));
+			maps.setMinimumSize(new Dimension(420, (Map.getMapArray().size() * 55)));
+			maps.setPreferredSize(new Dimension(420, (Map.getMapArray().size() * 55)));
 		} else {
-			maps.setMinimumSize(new Dimension(420, (currentMaps.size()) * 55));
-			maps.setPreferredSize(new Dimension(420, (currentMaps.size()) * 55));
+			maps.setMinimumSize(new Dimension(420, (currentMaps.size() * 55)));
+			maps.setPreferredSize(new Dimension(420, (currentMaps.size() * 55)));
 		}
 		mapsScroll.revalidate();
 	}
@@ -202,31 +202,37 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		updateMaps();
 	}
 
-	public static void sortMaps() {
+	private static void sortMaps() {
 		mapPanels.clear();
 		maps.removeAll();
 		currentMaps.clear();
-		maps.setMinimumSize(new Dimension(420, 0));
-		maps.setPreferredSize(new Dimension(420, 0));
-		maps.setLayout(null);
-		maps.setOpaque(false);
 		int counter = 0;
 		selectedMap = 0;
-
-		for(Map map : Map.getMapArray()) {
-			if(map.getCompatible().equals(ModPack.getPack(LaunchFrame.getSelectedModIndex()).getDir())) {
-				if(origin.equalsIgnoreCase("all")) {
+		LaunchFrame.getInstance().mapsPane.repaint();
+		LaunchFrame.updateMapInstallLocs(new String[]{""});
+		mapInfo.setText("");
+		if(origin.equals("All")) {
+			for(Map map : Map.getMapArray()) {
+				if(compatible.equals("All") || map.isCompatible(compatible)) {
 					addMap(map);
 					currentMaps.put(counter, map);
 					counter++;
-				} else if(origin.equalsIgnoreCase("ftb")) {
-					if(map.getAuthor().equalsIgnoreCase("the ftb team")) {
+				}
+			}
+		} else if(origin.equals("FTB")) {
+			for(Map map : Map.getMapArray()) {
+				if(map.getAuthor().equalsIgnoreCase("the ftb team")) {
+					if(compatible.equals("All") || map.isCompatible(compatible)) {
 						addMap(map);
 						currentMaps.put(counter, map);
 						counter++;
 					}
-				} else {
-					if(!map.getAuthor().equalsIgnoreCase("the ftb team")) {
+				}
+			}
+		} else {
+			for(Map map : Map.getMapArray()) {
+				if(!map.getAuthor().equalsIgnoreCase("the ftb team")) {
+					if(compatible.equals("All") || map.isCompatible(compatible)) {
 						addMap(map);
 						currentMaps.put(counter, map);
 						counter++;
@@ -236,7 +242,7 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		}
 		updateMaps();
 	}
-	
+
 	public static void searchMaps(String search) {
 		System.out.println("Searching Maps for : " + search);
 		mapPanels.clear();
@@ -258,12 +264,13 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 		updateMaps();
 	}
 
-	public static void updateMaps() {
+	private static void updateMaps() {
 		for (int i = 0; i < mapPanels.size(); i++) {
 			if(selectedMap == i) {
 				mapPanels.get(i).setBackground(UIManager.getColor("control").darker().darker());
 				splash.setIcon(new ImageIcon(Map.getMap(getIndex()).getImage()));
 				mapPanels.get(i).setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+				LaunchFrame.updateMapInstallLocs(Map.getMap(getIndex()).getCompatible());
 				mapInfo.setText(Map.getMap(getIndex()).getInfo());
 			} else {
 				mapPanels.get(i).setBackground(UIManager.getColor("control"));
@@ -277,7 +284,8 @@ public class MapsPane extends JPanel implements ILauncherPane, MapListener {
 	}
 
 	public static void updateFilter() {
-		typeLbl.setText("<html><body><strong><font color=rgb\"(243,119,31)\">Filter:</strong></font> " + type + "<font color=rgb\"(243,119,31)\"> / </font>" + origin +"</body></html>");
+		// TODO: Show Modpack specific filtering
+		typeLbl.setText("<html><body><strong><font color=rgb\"(243,119,31)\">Filter:</strong></font> " + type + "<font color=rgb\"(243,119,31)\"> / </font>" + origin + "<font color=rgb\"(243,119,31)\"> / </font>" + compatible + "</body></html>");
 		sortMaps();
 		LaunchFrame.getInstance().updateFooter();
 	}

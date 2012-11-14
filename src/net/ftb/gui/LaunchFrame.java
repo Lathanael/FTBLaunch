@@ -85,9 +85,9 @@ public class LaunchFrame extends JFrame {
 	public static final String FORGENAME = "MinecraftForge.zip";
 	private NewsPane newsPane;
 	private OptionsPane optionsPane;
-	private ModpacksPane modPacksPane;
-	private MapsPane mapsPane;
-	private TexturepackPane tpPane;
+	public ModpacksPane modPacksPane;
+	public MapsPane mapsPane;
+	public TexturepackPane tpPane;
 	private JPanel panel = new JPanel();
 	private JPanel footer = new JPanel();
 	private final JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
@@ -96,11 +96,12 @@ public class LaunchFrame extends JFrame {
 	private JLabel tpInstallLocLbl = new JLabel();
 	private JButton launch = new JButton(), edit = new JButton(), donate = new JButton(), serverbutton = new JButton(), mapInstall = new JButton(), serverMap = new JButton(),
 			tpInstall = new JButton();
-	private static String[] dropdown_ = {"Select Profile", "Create Profile" };
-	private static JComboBox users, tpInstallLocation;
+	private static String[] dropdown_ = {"Select Profile", "Create Profile"};
+	private static JComboBox users, tpInstallLocation, mapInstallLocation;
 	private static final long serialVersionUID = 1L;
 	private static LaunchFrame instance = null;
 	private LoginResponse RESPONSE;
+	private static String currentmd5 = "";
 
 	protected static UserManager userManager;
 
@@ -108,7 +109,7 @@ public class LaunchFrame extends JFrame {
 	public static String tempPass = "";
 	public static Panes currentPane = Panes.MODPACK;
 
-	public enum Panes {
+	protected enum Panes {
 		NEWS,
 		OPTIONS,
 		MODPACK,
@@ -134,7 +135,7 @@ public class LaunchFrame extends JFrame {
 		Logger.logInfo("Java vm: "+System.getProperty("java.vm.name") + " version: " + System.getProperty("java.vm.version") 
 				+ " by " + System.getProperty("java.vm.vendor"));
 		Logger.logInfo("OS: "+System.getProperty("os.arch") + " " + System.getProperty("os.name") + " " + System.getProperty("os.version"));
-		Logger.logInfo("Working directory: " + System.getProperty("user.dir"));
+		Logger.logInfo("Working directory: ");
 		switch(OSUtils.getCurrentOS()) {
 		case WINDOWS:
 			Logger.logInfo(System.getenv("APPDATA"));
@@ -364,7 +365,7 @@ public class LaunchFrame extends JFrame {
 			}
 		});
 
-		mapInstall.setBounds(480, 20, 330, 30);
+		mapInstall.setBounds(650, 20, 160, 30);
 		mapInstall.setText(I18N.getLocaleString("INSTALL_MAP"));
 		mapInstall.setVisible(false);
 		mapInstall.addActionListener(new ActionListener() {
@@ -377,6 +378,11 @@ public class LaunchFrame extends JFrame {
 				}
 			}
 		});
+
+		mapInstallLocation = new JComboBox();
+		mapInstallLocation.setBounds(480, 20, 160, 30);
+		mapInstallLocation.setToolTipText("Install to...");
+		mapInstallLocation.setVisible(false);
 
 		serverMap.setBounds(480, 20, 330, 30);
 		serverMap.setText(I18N.getLocaleString("DOWNLOAD_MAP_SERVER"));
@@ -423,6 +429,7 @@ public class LaunchFrame extends JFrame {
 		footer.add(donate);
 		footer.add(serverbutton);
 		footer.add(mapInstall);
+		footer.add(mapInstallLocation);
 		footer.add(serverMap);
 		footer.add(tpInstall);
 		footer.add(tpInstallLocation);
@@ -488,7 +495,7 @@ public class LaunchFrame extends JFrame {
 		tabbedPane.setEnabledAt(1, false);
 		tabbedPane.setEnabledAt(2, false);
 		tabbedPane.setEnabledAt(3, false);
-		tabbedPane.setEnabledAt(4, false);
+		//		tabbedPane.setEnabledAt(4, false);
 		tabbedPane.getSelectedComponent().setEnabled(false);
 
 		launch.setEnabled(false);
@@ -496,6 +503,7 @@ public class LaunchFrame extends JFrame {
 		edit.setEnabled(false);
 		serverbutton.setEnabled(false);
 		mapInstall.setEnabled(false);
+		mapInstallLocation.setEnabled(false);
 		serverMap.setEnabled(false);
 		tpInstall.setEnabled(false);
 		tpInstallLocation.setEnabled(false);
@@ -529,7 +537,6 @@ public class LaunchFrame extends JFrame {
 					response = new LoginResponse(responseStr);
 					RESPONSE = response;
 				} catch (IllegalArgumentException e) {
-					// TODO: Add in error dialogs to represent login errors.
 					if (responseStr.contains(":")) {
 						Logger.logError("Received invalid response from server.");
 					} else {
@@ -558,7 +565,6 @@ public class LaunchFrame extends JFrame {
 		final String installPath = Settings.getSettings().getInstallPath();
 		final ModPack modpack = ModPack.getPack(modPacksPane.getSelectedModIndex());
 		MinecraftVersionDetector mvd = new MinecraftVersionDetector();
-		updateFolderStructure();
 		// TODO: If minecraft updates to the newest minecraft required by the mod pack, but they have an older version... What do?
 		if(!new File(installPath + "/" + modpack.getDir() + "/minecraft/bin/minecraft.jar").exists() 
 				|| mvd.shouldUpdate(modpack.getMcVersion(), installPath + "/" + modpack.getDir() + "/minecraft")) {
@@ -619,9 +625,20 @@ public class LaunchFrame extends JFrame {
 	 * @throws NoSuchAlgorithmException - see md5
 	 */
 	public static String getCreeperhostLink(String file) throws NoSuchAlgorithmException {
-		String resolved = "http://repo.creeperhost.net/direct/FTB2/" + md5("mcepoch1" + getTime()) + "/" + file;
+		if(currentmd5.isEmpty()) {
+			currentmd5 = md5("mcepoch1" + getTime());
+		}
+		String resolved = "http://repo.creeperhost.net/direct/FTB2/" + currentmd5 + "/" + file;
 		Logger.logInfo(resolved);
 		return resolved; 
+	}
+
+	/**
+	 * @param file - the name of the file, as saved to the repo (including extension)
+	 * @return - the direct link
+	 */
+	public static String getStaticCreeperhostLink(String file) {
+		return "http://repo.creeperhost.net/static/FTB2/" + file; 
 	}
 
 	/**
@@ -694,21 +711,12 @@ public class LaunchFrame extends JFrame {
 		String temppath = OSUtils.getDynamicStorageLocation();
 		ModPack pack = ModPack.getPack(modPacksPane.getSelectedModIndex());
 		Logger.logInfo("dirs mk'd");
-		if(new File(installpath, pack.getDir() + "/instMods/").exists()) {
-			new File(installpath, pack.getDir() + "/instMods/").delete();
-		}
-		if(new File(installpath, pack.getDir() + "/minecraft/mods/").exists()) {
-			new File(installpath, pack.getDir() + "/minecraft/mods/").delete();
-		}
-		if(new File(installpath, pack.getDir() + "/minecraft/coremods/").exists()) {
-			new File(installpath, pack.getDir() + "/minecraft/coremods/").delete();
-		}
-		File source = new File(temppath, "temp/" + pack.getDir() + "/.minecraft");
+		File source = new File(temppath, "ModPacks/" + pack.getDir() + "/.minecraft");
 		if(!source.exists()) {
-			source = new File(temppath, "temp/" + pack.getDir() + "/minecraft");
+			source = new File(temppath, "ModPacks/" + pack.getDir() + "/minecraft");
 		}
-		FileUtils.copyFolder(source, new File(installpath + "/" + pack.getDir() + "/minecraft/"));
-		FileUtils.copyFolder(new File(temppath + "/temp/" + pack.getDir() + "/instMods/"), new File(installpath + "/" + pack.getDir() + "/instMods/"));
+		FileUtils.copyFolder(source, new File(installpath, pack.getDir() + "/minecraft/"));
+		FileUtils.copyFolder(new File(temppath, "ModPacks/" + pack.getDir() + "/instMods/"), new File(installpath, pack.getDir() + "/instMods/"));
 	}
 
 	/**
@@ -762,6 +770,13 @@ public class LaunchFrame extends JFrame {
 		}
 	}
 
+	public static void updateMapInstallLocs(String[] locations) {
+		mapInstallLocation.removeAllItems();
+		for(int i = 0; i < locations.length; i++) {
+			mapInstallLocation.addItem(locations[i]);
+		}
+	}
+
 	/**
 	 * @param A - First string array
 	 * @param B - Second string array
@@ -796,6 +811,20 @@ public class LaunchFrame extends JFrame {
 	}
 
 	/**
+	 * @return - Outputs selected map install index
+	 */
+	public static int getSelectedMapInstallIndex() {
+		return instance.mapInstallLocation.getSelectedIndex();
+	}
+
+	/**
+	 * @return - Outputs selected texturepack install index
+	 */
+	public static int getSelectedTPInstallIndex() {
+		return instance.tpInstallLocation.getSelectedIndex();
+	}
+
+	/**
 	 * @return - Outputs LaunchFrame instance
 	 */
 	public static LaunchFrame getInstance() {
@@ -814,6 +843,7 @@ public class LaunchFrame extends JFrame {
 		tabbedPane.getSelectedComponent().setEnabled(true);
 		updateFooter();
 		mapInstall.setEnabled(true);
+		mapInstallLocation.setEnabled(true);
 		serverMap.setEnabled(true);
 		tpInstall.setEnabled(true);
 		launch.setEnabled(true);
@@ -883,6 +913,7 @@ public class LaunchFrame extends JFrame {
 
 	public void disableMapButtons() {
 		mapInstall.setVisible(false);
+		mapInstallLocation.setVisible(false);
 		serverMap.setVisible(false);
 	}
 
@@ -897,6 +928,7 @@ public class LaunchFrame extends JFrame {
 		case MAPS:
 			result = mapsPane.type.equals("Server");
 			mapInstall.setVisible(!result);
+			mapInstallLocation.setVisible(!result);
 			serverMap.setVisible(result);
 			disableMainButtons();
 			disableTextureButtons();
@@ -920,18 +952,21 @@ public class LaunchFrame extends JFrame {
 		}
 	}
 
+	// TODO: Make buttons dynamically sized.
 	public void updateLocale() {
 		if(I18N.currentLocale == Locale.deDE) {
 			edit.setBounds(420, 20, 120, 30);
 			donate.setBounds(330, 20, 80, 30);
-			mapInstall.setBounds(420, 20, 390, 30);
+			mapInstall.setBounds(620, 20, 190, 30);
+			mapInstallLocation.setBounds(420, 20, 190, 30);
 			serverbutton.setBounds(420, 20, 390, 30);
 			tpInstallLocation.setBounds(420, 20, 190, 30);
 			tpInstall.setBounds(620, 20, 190, 30);
 		} else {
 			edit.setBounds(480, 20, 60, 30);
 			donate.setBounds(390, 20, 80, 30);
-			mapInstall.setBounds(480, 20, 330, 30);
+			mapInstall.setBounds(650, 20, 160, 30);
+			mapInstallLocation.setBounds(480, 20, 160, 30);
 			serverbutton.setBounds(480, 20, 330, 30);
 			tpInstallLocation.setBounds(480, 20, 160, 30);
 			tpInstall.setBounds(650, 20, 160, 30);
@@ -950,12 +985,5 @@ public class LaunchFrame extends JFrame {
 		modPacksPane.updateLocale();
 		mapsPane.updateLocale();
 		tpPane.updateLocale();
-	}
-
-	private void updateFolderStructure() {
-		File temp = new File(Settings.getSettings().getInstallPath(), ModPack.getPack(getSelectedModIndex()).getDir() + "/.minecraft");
-		if(temp.exists()) {
-			temp.renameTo(new File(Settings.getSettings().getInstallPath(), ModPack.getPack(getSelectedModIndex()).getDir() + "/minecraft"));
-		}
 	}
 }

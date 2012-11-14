@@ -8,15 +8,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
-import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 
 public class UserManager {
 	public final static ArrayList<User> _users = new ArrayList<User>();
 	private File _filename;
+	private static byte[] key;
 
 	public UserManager(File filename) {
 		_filename = filename;
@@ -30,7 +30,6 @@ public class UserManager {
 		try {
 			return new String(in.toByteArray(), "utf8");
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
 			return "";
 		}
 	}
@@ -40,7 +39,6 @@ public class UserManager {
 		try {
 			str2 = new BigInteger(str.getBytes("utf8")).xor(new BigInteger(1, getMacAddress()));
 		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
 			return "";
 		}
 		return String.format("%040x", str2);
@@ -69,9 +67,7 @@ public class UserManager {
 					_users.add(new User(str));
 				}
 				read.close();
-			} catch (Exception ex) {
-				ex.printStackTrace();
-			}
+			} catch (Exception ex) { }
 		}
 	}
 
@@ -148,15 +144,23 @@ public class UserManager {
 	}
 
 	private static byte[] getMacAddress() {
-		byte[] mac = null;
-		try {
-			mac = NetworkInterface.getByInetAddress(InetAddress.getLocalHost()).getHardwareAddress();
-		} catch (SocketException e) {
-		} catch (UnknownHostException e) { }
-		byte[] out = new byte[mac.length * 10];
-		for(int i = 0; i < out.length; i++) {
-			out[i] = mac[i - (Math.round(i / mac.length) * mac.length)];
+		if(key != null && key.length >= 10) {
+			return key;
 		}
-		return out;
+		try {
+			Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+			while(networkInterfaces.hasMoreElements()) {
+				NetworkInterface network = networkInterfaces.nextElement();
+				byte[] mac = network.getHardwareAddress();
+				if(mac != null && mac.length > 0) {
+					key = new byte[mac.length * 10];
+					for(int i = 0; i < key.length; i++) {
+						key[i] = mac[i - (Math.round(i / mac.length) * mac.length)];
+					}
+					return key;
+				}
+			}
+		} catch (SocketException e) { }
+		return null;
 	}
 }

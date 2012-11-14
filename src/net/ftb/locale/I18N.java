@@ -4,10 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Properties;
 
-import net.ftb.data.Settings;
 import net.ftb.log.Logger;
 import net.ftb.util.OSUtils;
 
@@ -18,7 +18,7 @@ import net.ftb.util.OSUtils;
 public class I18N {
 	private static Properties locales = new Properties();
 	private static Properties fallback = new Properties();
-	private static File dir = new File(OSUtils.getDynamicStorageLocation(), "temp" + File.separator + "i18n");
+	private static File dir = new File(OSUtils.getDynamicStorageLocation(), "locale");
 	public static HashMap<String, String> localeFiles = new HashMap<String, String>();
 	public static HashMap<Integer, String> localeIndices = new HashMap<Integer, String>();
 	public static Locale currentLocale = Locale.enUS;
@@ -31,7 +31,8 @@ public class I18N {
 		ptBR,
 		ptPT,
 		ruRU,
-		svSE
+		svSE,
+		esES
 	}
 
 	/**
@@ -50,7 +51,7 @@ public class I18N {
 			try {
 				locales.load(new InputStreamReader(new FileInputStream(dir.getAbsolutePath() + File.separator + file), "UTF8"));
 			} catch (IOException e) {
-				Logger.logError("[i18n] Could not load language file", e);
+				Logger.logWarn("[i18n] Could not load language file", e);
 			}
 		}
 	}
@@ -60,7 +61,9 @@ public class I18N {
 	 */
 	public static void setupLocale() {
 		localeFiles.put("enUS", "English"); localeIndices.put(0, "enUS");
-		LocaleUpdater.checkForUpdates();
+		try {
+			LocaleUpdater.checkForUpdates();
+		} catch (NoSuchAlgorithmException e1) { }
 		// Add files from i18n directory
 		int i = 1;
 		Properties tmp = new Properties();
@@ -74,7 +77,7 @@ public class I18N {
 					localeIndices.put(i, file);
 					i++;
 				} catch (IOException e) {
-					Logger.logError("[i18n] Could not load language file", e);
+					Logger.logWarn("[i18n] Could not load language file", e);
 				}
 			}
 		}
@@ -106,7 +109,9 @@ public class I18N {
 			currentLocale = Locale.ruRU;
 		} else if(locale.equalsIgnoreCase("svSE")){
 			currentLocale = Locale.svSE;
-		} else {
+		} else if(locale.equalsIgnoreCase("esES")){
+			currentLocale = Locale.esES;
+		} else{
 			currentLocale = Locale.enUS;
 		}
 		getLocaleProperties(locale);

@@ -22,12 +22,12 @@ import net.ftb.util.OSUtils;
 import net.ftb.workers.MapLoader;
 
 public class Map {
-	private String name, author, version, url, mapname, mcversion, logoName, imageName, pack, info;
+	private String name, author, version, url, mapname, mcversion, logoName, imageName, info;
+	private String[] compatible;
 	private Image logo, image;
-	private int size, index;
+	private int index;
 
 	private final static ArrayList<Map> maps = new ArrayList<Map>();
-
 	private static List<MapListener> listeners = new ArrayList<MapListener>();
 
 	public static void addListener(MapListener listener) {
@@ -62,7 +62,7 @@ public class Map {
 		this.author = author;
 		this.version = version;
 		this.url = url;
-		pack = compatible;
+		this.compatible = compatible.split(",");
 		this.mcversion = mcversion;
 		this.mapname = mapname;
 		String installPath = OSUtils.getDynamicStorageLocation();
@@ -70,49 +70,47 @@ public class Map {
 		logoName = logo;
 		imageName = image;
 		// TODO: Figure out how to do version checking on maps.
-		File verFile = new File(installPath, "temp" + File.separator + "Maps" + File.separator + mapname + File.separator + "version");
-		File dir = new File(installPath, "temp" + File.separator + "Maps" + File.separator + mapname);
+		File tempDir = new File(installPath, "Maps" + File.separator + mapname);
+		File verFile = new File(tempDir, "version");
 		URL url_;
 		if(!upToDate(verFile)) {
-			url_ = new URL(LaunchFrame.getCreeperhostLink(logo));
+			url_ = new URL(LaunchFrame.getStaticCreeperhostLink(logo));
 			this.logo = Toolkit.getDefaultToolkit().createImage(url_);
 			BufferedImage tempImg = ImageIO.read(url_);
-			ImageIO.write(tempImg, "png", new File(dir, logo));
+			ImageIO.write(tempImg, "png", new File(tempDir, logo));
 			tempImg.flush();
-			url_ = new URL(LaunchFrame.getCreeperhostLink(image));
+			url_ = new URL(LaunchFrame.getStaticCreeperhostLink(image));
 			this.image = Toolkit.getDefaultToolkit().createImage(url_);
 			tempImg = ImageIO.read(url_);
-			ImageIO.write(tempImg, "png", new File(dir, image));
+			ImageIO.write(tempImg, "png", new File(tempDir, image));
 			tempImg.flush();
 		} else {
-			if(new File(dir, logo).exists()) {
-				this.logo = Toolkit.getDefaultToolkit().createImage(dir.getPath() + File.separator + logo);
+			if(new File(tempDir, logo).exists()) {
+				this.logo = Toolkit.getDefaultToolkit().createImage(tempDir.getPath() + File.separator + logo);
 			} else {
-				url_ = new URL(LaunchFrame.getCreeperhostLink(logo));
+				url_ = new URL(LaunchFrame.getStaticCreeperhostLink(logo));
 				this.logo = Toolkit.getDefaultToolkit().createImage(url_);
 				BufferedImage tempImg = ImageIO.read(url_);
-				ImageIO.write(tempImg, "png", new File(dir, logo));
+				ImageIO.write(tempImg, "png", new File(tempDir, logo));
 				tempImg.flush();
 			}
-			if(new File(dir, image).exists()) {
-				this.image = Toolkit.getDefaultToolkit().createImage(dir.getPath() + File.separator + image);
+			if(new File(tempDir, image).exists()) {
+				this.image = Toolkit.getDefaultToolkit().createImage(tempDir.getPath() + File.separator + image);
 			} else {
-				url_ = new URL(LaunchFrame.getCreeperhostLink(image));
+				url_ = new URL(LaunchFrame.getStaticCreeperhostLink(image));
 				this.image = Toolkit.getDefaultToolkit().createImage(url_);
 				BufferedImage tempImg = ImageIO.read(url_);
-				ImageIO.write(tempImg, "png", new File(dir, image));
+				ImageIO.write(tempImg, "png", new File(tempDir, image));
 				tempImg.flush();
 			}
 		}
-		url_ = new URL(LaunchFrame.getCreeperhostLink(url));
-		size = url_.openConnection().getContentLength();
 	}
 
 	private boolean upToDate(File verFile) {
-		boolean result = false;
+		boolean result = true;
 		try {
 			if(!verFile.exists()) {
-				new File(OSUtils.getDynamicStorageLocation(), "temp" + File.separator + "Maps" + File.separator + mapname + File.separator).mkdirs();
+				verFile.getParentFile().mkdirs();
 				verFile.createNewFile();
 				result = false;
 			}
@@ -126,7 +124,7 @@ public class Map {
 				result = false;
 			}
 			in.close();
-		} catch (IOException e) { e.printStackTrace(); }
+		} catch (IOException e) { }
 		return result;
 	}
 
@@ -158,8 +156,8 @@ public class Map {
 		return image;
 	}
 
-	public String getCompatible() {
-		return pack;
+	public String[] getCompatible() {
+		return compatible;
 	}
 
 	public String getMcVersion() {
@@ -174,15 +172,20 @@ public class Map {
 		return info;
 	}
 
-	public int getSize() {
-		return size;
-	}
-
 	public String getLogoName() {
 		return logoName;
 	}
 
 	public String getImageName() {
 		return imageName;
+	}
+
+	public boolean isCompatible(String dir) {
+		for(int i = 0; i < compatible.length; i++) {
+			if(compatible[i].equalsIgnoreCase(dir)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

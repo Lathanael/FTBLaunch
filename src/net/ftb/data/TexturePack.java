@@ -25,11 +25,10 @@ public class TexturePack {
 	private String name, author, version, url, mcversion, logoName, imageName, info;
 	private Image logo, image;
 	private String[] compatible;
-	private int size, index;
+	private int index;
 	private String sep = File.separator;
 
 	private final static ArrayList<TexturePack> texturePacks = new ArrayList<TexturePack>();
-
 	private static List<TexturePackListener> listeners = new ArrayList<TexturePackListener>();
 
 	public static void addListener(TexturePackListener listener) {
@@ -70,30 +69,44 @@ public class TexturePack {
 		imageName = image;
 		this.compatible = compatible.split(",");
 		this.info = info;
-		File verFile = new File(installPath, "temp" + sep + "TexturePacks" + sep + name + sep + "version");
-		File dir = new File(installPath, "temp" + sep + "TexturePacks" + sep + name);
+		File tempDir = new File(installPath, "TexturePacks" + sep + name);
+		File verFile = new File(tempDir, "version");
 		URL url_;
 		if(!upToDate(verFile)) {
-			url_ = new URL(LaunchFrame.getCreeperhostLink(logo));
+			url_ = new URL(LaunchFrame.getStaticCreeperhostLink(logo));
 			this.logo = Toolkit.getDefaultToolkit().createImage(url_);
 			BufferedImage tempImg = ImageIO.read(url_);
-			ImageIO.write(tempImg, "png", new File(dir, logo));
+			ImageIO.write(tempImg, "png", new File(tempDir, logo));
 			tempImg.flush();
-			url_ = new URL(LaunchFrame.getCreeperhostLink(image));
+			url_ = new URL(LaunchFrame.getStaticCreeperhostLink(image));
 			this.image = Toolkit.getDefaultToolkit().createImage(url_);
 			tempImg = ImageIO.read(url_);
-			ImageIO.write(tempImg, "png", new File(dir, image));
+			ImageIO.write(tempImg, "png", new File(tempDir, image));
 			tempImg.flush();
 		} else {
-			this.logo = Toolkit.getDefaultToolkit().createImage(dir.getPath() + sep + logo);
-			this.image = Toolkit.getDefaultToolkit().createImage(dir.getPath() + sep + image);
+			if(new File(tempDir, logo).exists()) {
+				this.logo = Toolkit.getDefaultToolkit().createImage(tempDir.getPath() + sep + logo);
+			} else {
+				url_ = new URL(LaunchFrame.getStaticCreeperhostLink(logo));
+				this.logo = Toolkit.getDefaultToolkit().createImage(url_);
+				BufferedImage tempImg = ImageIO.read(url_);
+				ImageIO.write(tempImg, "png", new File(tempDir, logo));
+				tempImg.flush();
+			}
+			if(new File(tempDir, image).exists()) {
+				this.image = Toolkit.getDefaultToolkit().createImage(tempDir.getPath() + sep + image);
+			} else {
+				url_ = new URL(LaunchFrame.getStaticCreeperhostLink(image));
+				this.image = Toolkit.getDefaultToolkit().createImage(url_);
+				BufferedImage tempImg = ImageIO.read(url_);
+				ImageIO.write(tempImg, "png", new File(tempDir, image));
+				tempImg.flush();
+			}
 		}
-		url_ = new URL(LaunchFrame.getCreeperhostLink(url));
-		size = url_.openConnection().getContentLength();
 	}
 
 	private boolean upToDate(File verFile) {
-		boolean result = false;
+		boolean result = true;
 		try {
 			if(!verFile.exists()) {
 				verFile.getParentFile().mkdirs();
@@ -148,10 +161,6 @@ public class TexturePack {
 
 	public String getInfo() {
 		return info;
-	}
-
-	public int getSize() {
-		return size;
 	}
 
 	public String getLogoName() {

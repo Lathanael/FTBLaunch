@@ -27,16 +27,16 @@ public class ModpackLoader extends Thread {
 		try {
 			Logger.logInfo("loading modpack information...");
 
-			MODPACKSFILE = "https://dl.dropbox.com/u/2405919/modpack.xml"; // LaunchFrame.getCreeperhostLink("modpacks.xml");
+			MODPACKSFILE = LaunchFrame.getStaticCreeperhostLink("modpacks.xml");
 
 			Document doc;
 			try {
 				doc = AppUtils.downloadXML(new URL(MODPACKSFILE));
 			} catch (SAXException e) {
-				Logger.logError("Exception during reading modpackfile",e);
+				Logger.logError("Exception reading modpackfile", e);
 				return;
 			} catch (IOException e) {
-				Logger.logError("Exception during reading modpackfile",e);
+				Logger.logError("Exception reading modpackfile", e);
 				return;
 			}
 
@@ -56,7 +56,8 @@ public class ModpackLoader extends Thread {
 							modPackAttr.getNamedItem("version").getTextContent(), modPackAttr.getNamedItem("logo").getTextContent(),
 							modPackAttr.getNamedItem("url").getTextContent(), modPackAttr.getNamedItem("image").getTextContent(),
 							modPackAttr.getNamedItem("dir").getTextContent(), modPackAttr.getNamedItem("mcVersion").getTextContent(), 
-							modPackAttr.getNamedItem("serverPack").getTextContent(), modPackAttr.getNamedItem("description").getTextContent(), i));
+							modPackAttr.getNamedItem("serverPack").getTextContent(), modPackAttr.getNamedItem("description").getTextContent(),
+							modPackAttr.getNamedItem("mods") != null ? modPackAttr.getNamedItem("mods").getTextContent() : "", i));
 				} catch (DOMException e) { 
 				} catch (IOException e) { }
 			}

@@ -7,9 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-import net.ftb.updater.Channel;
 import net.ftb.util.OSUtils;
-import net.ftb.util.PathUtils;
 
 public class Settings extends Properties {
 	private static final long serialVersionUID = 1L;
@@ -20,14 +18,14 @@ public class Settings extends Properties {
 	public static void initSettings() throws IOException {
 		File cfgFile = new File(OSUtils.getDynamicStorageLocation(), "ftblaunch.cfg");
 		if (cfgFile.exists()) {
-			LoadSettings(cfgFile);
+			loadSettings(cfgFile);
 			return;
 		}
 		settings = new Settings();
 		settings.setConfigFile(cfgFile);
 	}
 
-	public static void LoadSettings(File file) throws FileNotFoundException, IOException {
+	public static void loadSettings(File file) throws FileNotFoundException, IOException {
 		settings = new Settings(file);
 	}
 
@@ -80,14 +78,6 @@ public class Settings extends Properties {
 
 	public void setConfigFile(File path) {
 		configPath = path;
-	}
-
-	public Channel getChannel() {
-		return Channel.fromName(getProperty("channel"));
-	}
-
-	public void setChannel(Channel channel) {
-		setProperty("channel", channel.name());
 	}
 
 	public String getLocale() {

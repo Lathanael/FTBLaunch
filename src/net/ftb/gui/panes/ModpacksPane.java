@@ -7,7 +7,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +31,7 @@ import net.ftb.gui.dialogs.EditModPackDialog;
 import net.ftb.gui.dialogs.FilterDialog;
 import net.ftb.locale.I18N;
 import net.ftb.locale.I18N.Locale;
+import net.ftb.log.Logger;
 
 public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListener {
 	private static final long serialVersionUID = 1L;
@@ -53,8 +53,6 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 	public static String type = "Client", origin = "All";
 	public static boolean loaded = false;
 
-
-
 	public ModpacksPane () {
 		super();
 		this.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -67,10 +65,10 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 		packPanels = new ArrayList<JPanel>();
 
 		// TODO: Set loading animation while we wait
-//		try {
-//			loadingImage = new JLabel(new ImageIcon(new URL("http://cdn.nirmaltv.com/images/generatorphp-thumb.gif")));
-//		} catch (MalformedURLException e1) { e1.printStackTrace(); }
-//		loadingImage.setLocation(58, 36);
+		//		try {
+		//			loadingImage = new JLabel(new ImageIcon(new URL("http://cdn.nirmaltv.com/images/generatorphp-thumb.gif")));
+		//		} catch (MalformedURLException e1) { e1.printStackTrace(); }
+		//		loadingImage.setLocation(58, 36);
 
 		packs = new JPanel();
 		packs.setLayout(null);
@@ -120,7 +118,7 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 		filler.setForeground(Color.white);
 		filler.setBounds(58, 6, 378, 42);
 		filler.setBackground(new Color(255, 255, 255, 0));
-//		p.add(loadingImage);
+		//		p.add(loadingImage);
 		p.add(filler);
 		packs.add(p);
 
@@ -150,7 +148,7 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 		// TODO: Fix darker background for text area? Or is it better blending in?
 		packInfo.setBackground(UIManager.getColor("control").darker().darker());
 		add(packInfo);
-		
+
 		JScrollPane infoScroll = new JScrollPane();
 		infoScroll.setBounds(420, 210, 410, 90);
 		infoScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -173,7 +171,7 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 		}
 
 		final int packIndex = packPanels.size();
-		System.out.println("Adding pack " + getModNum());
+		Logger.logInfo("Adding pack " + getModNum());
 		final JPanel p = new JPanel();
 		p.setBounds(0, (packIndex * 55), 420, 55);
 		p.setLayout(null);
@@ -196,10 +194,12 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 			@Override public void mouseClicked(MouseEvent e) {
 				selectedPack = packIndex;
 				updatePacks();
-				MapsPane.sortMaps();
 			}
 			@Override public void mouseReleased(MouseEvent e) { }
-			@Override public void mousePressed(MouseEvent e) { }
+			@Override public void mousePressed(MouseEvent e) { 
+				selectedPack = packIndex;
+				updatePacks();
+			}
 			@Override public void mouseExited(MouseEvent e) { }
 			@Override public void mouseEntered(MouseEvent e) { }
 		};
@@ -210,12 +210,12 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 		p.add(logo);
 		packPanels.add(p);
 		packs.add(p);
-		if(origin.equalsIgnoreCase("all")) {
-			packs.setMinimumSize(new Dimension(420, (ModPack.getPackArray().size()) * 55));
-			packs.setPreferredSize(new Dimension(420, (ModPack.getPackArray().size()) * 55));
+		if(origin.equals("All")) {
+			packs.setMinimumSize(new Dimension(420, (ModPack.getPackArray().size() * 55)));
+			packs.setPreferredSize(new Dimension(420, (ModPack.getPackArray().size() * 55)));
 		} else {
-			packs.setMinimumSize(new Dimension(420, (currentPacks.size()) * 55));
-			packs.setPreferredSize(new Dimension(420, (currentPacks.size()) * 55));
+			packs.setMinimumSize(new Dimension(420, (currentPacks.size() * 55)));
+			packs.setPreferredSize(new Dimension(420, (currentPacks.size() * 55)));
 		}
 		packsScroll.revalidate();
 	}
@@ -230,12 +230,10 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 		packPanels.clear();
 		packs.removeAll();
 		currentPacks.clear();
-		packs.setMinimumSize(new Dimension(420, 0));
-		packs.setPreferredSize(new Dimension(420, 0));
-		packs.setLayout(null);
-		packs.setOpaque(false);
 		int counter = 0;
 		selectedPack = 0;
+		packInfo.setText("");
+		LaunchFrame.getInstance().modPacksPane.repaint();
 		if(origin.equalsIgnoreCase("all")) {
 			for(ModPack pack : ModPack.getPackArray()) {
 				addPack(pack);
@@ -261,7 +259,7 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 		}
 		updatePacks();
 	}
-	
+
 	public static void searchPacks(String search) {
 		System.out.println("Searching Packs for : " + search);
 		packPanels.clear();
@@ -286,10 +284,18 @@ public class ModpacksPane extends JPanel implements ILauncherPane, ModPackListen
 	private static void updatePacks() {
 		for (int i = 0; i < packPanels.size(); i++) {
 			if(selectedPack == i) {
+				String mods = "";
+				if (ModPack.getPack(getIndex()).getMods() != null) {
+					mods += "<p>This pack contains the following mods by default:</p><ul>";
+					for (String name : ModPack.getPack(getIndex()).getMods()) {
+						mods += "<li>" + name + "</li>";
+					}
+					mods += "</ul>";
+				}
 				packPanels.get(i).setBackground(UIManager.getColor("control").darker().darker());
 				splash.setIcon(new ImageIcon(ModPack.getPack(getIndex()).getImage()));
 				packPanels.get(i).setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-				packInfo.setText(ModPack.getPack(getIndex()).getInfo());
+				packInfo.setText(ModPack.getPack(getIndex()).getInfo() + mods);
 			} else {
 				packPanels.get(i).setBackground(UIManager.getColor("control"));
 				packPanels.get(i).setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

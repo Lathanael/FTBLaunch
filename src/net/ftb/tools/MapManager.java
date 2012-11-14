@@ -44,11 +44,11 @@ public class MapManager extends JDialog {
 		protected Boolean doInBackground() throws Exception {
 			String installPath = Settings.getSettings().getInstallPath();
 			Map map = Map.getMap(LaunchFrame.getSelectedMapIndex());
-			if(new File(installPath, map.getCompatible() + "/minecraft/saves/" + map.getMapName()).exists()) {
+			if(new File(installPath, map.getCompatible()[LaunchFrame.getInstance().getSelectedMapInstallIndex()] + "/minecraft/saves/" + map.getMapName()).exists()) {
 				MapOverwriteDialog dialog = new MapOverwriteDialog(LaunchFrame.getInstance(), true);
 				dialog.setVisible(true);
 				if(overwrite) {
-					new File(installPath, map.getCompatible() + "/minecraft/saves/" + map.getMapName()).delete();
+					new File(installPath, map.getCompatible()[LaunchFrame.getInstance().getSelectedMapInstallIndex()] + "/minecraft/saves/" + map.getMapName()).delete();
 				} else {
 					Logger.logInfo("Canceled map installation.");
 					return false;
@@ -58,7 +58,7 @@ public class MapManager extends JDialog {
 			return false;
 		}
 
-		public void downloadUrl(String filename, String urlString) throws MalformedURLException, IOException {
+		public void downloadUrl(String filename, String urlString) throws MalformedURLException, IOException, NoSuchAlgorithmException {
 			BufferedInputStream in = null;
 			FileOutputStream fout = null;
 			try {
@@ -66,7 +66,8 @@ public class MapManager extends JDialog {
 				fout = new FileOutputStream(filename);
 				byte data[] = new byte[1024];
 				int count, amount = 0, steps = 0;
-				int mapSize = Map.getMap(LaunchFrame.getSelectedMapIndex()).getSize();
+				URL url_ = new URL(LaunchFrame.getCreeperhostLink(Map.getMap(LaunchFrame.getSelectedMapIndex()).getUrl()));
+				int mapSize = url_.openConnection().getContentLength();
 				progressBar.setMaximum(10000);
 				while((count = in.read(data, 0, 1024)) != -1) {
 					fout.write(data, 0, count);
@@ -89,10 +90,10 @@ public class MapManager extends JDialog {
 		protected void downloadMap(String mapName, String dir) throws IOException, NoSuchAlgorithmException {
 			Logger.logInfo("Downloading");
 			String installPath = OSUtils.getDynamicStorageLocation();
-			new File(installPath + "/temp/Maps/" + dir + "/").mkdirs();
-			new File(installPath + "/temp/Maps/" + dir + "/" + mapName).createNewFile();
-			downloadUrl(installPath + "/temp/Maps/" + dir + "/" + mapName, "http://repo.creeperhost.net/direct/FTB2/" + md5("mcepoch1" + LaunchFrame.getTime()) + "/" + mapName);
-			FileUtils.extractZipTo(installPath + "/temp/Maps/" + dir + "/" + mapName, installPath + "/temp/Maps/" + dir);
+			new File(installPath + "/Maps/" + dir + "/").mkdirs();
+			new File(installPath + "/Maps/" + dir + "/" + mapName).createNewFile();
+			downloadUrl(installPath + "/Maps/" + dir + "/" + mapName, "http://repo.creeperhost.net/direct/FTB2/" + md5("mcepoch1" + LaunchFrame.getTime()) + "/" + mapName);
+			FileUtils.extractZipTo(installPath + "/Maps/" + dir + "/" + mapName, installPath + "/Maps/" + dir);
 			installMap(mapName, dir);
 		}
 
@@ -101,9 +102,9 @@ public class MapManager extends JDialog {
 			String installPath = Settings.getSettings().getInstallPath();
 			String tempPath = OSUtils.getDynamicStorageLocation();
 			Map map = Map.getMap(LaunchFrame.getSelectedMapIndex());
-			new File(installPath, map.getCompatible() + "/minecraft/saves/" + dir).mkdirs();
-			FileUtils.copyFolder(new File(tempPath, "temp/Maps/" + dir + "/" + dir), new File(installPath, map.getCompatible() + "/minecraft/saves/" + dir));
-			FileUtils.copyFile(new File(tempPath, "temp/Maps/" + dir + "/" + "version"), new File(installPath, map.getCompatible() + "/minecraft/saves/" + dir + "/version"));
+			new File(installPath, map.getCompatible()[LaunchFrame.getInstance().getSelectedMapInstallIndex()] + "/minecraft/saves/" + dir).mkdirs();
+			FileUtils.copyFolder(new File(tempPath, "Maps/" + dir + "/" + dir), new File(installPath, map.getCompatible()[LaunchFrame.getInstance().getSelectedMapInstallIndex()] + "/minecraft/saves/" + dir));
+			FileUtils.copyFile(new File(tempPath, "Maps/" + dir + "/" + "version"), new File(installPath, map.getCompatible()[LaunchFrame.getInstance().getSelectedMapInstallIndex()] + "/minecraft/saves/" + dir + "/version"));
 		}
 
 		public String md5(String input) throws NoSuchAlgorithmException {
@@ -169,7 +170,7 @@ public class MapManager extends JDialog {
 
 	public static void cleanUp() {
 		Map map = Map.getMap(LaunchFrame.getSelectedMapIndex());
-		File tempFolder = new File(OSUtils.getDynamicStorageLocation(), "temp" + sep + "Maps" + sep + map.getMapName() + sep);
+		File tempFolder = new File(OSUtils.getDynamicStorageLocation(), "Maps" + sep + map.getMapName() + sep);
 		for(String file: tempFolder.list()) {
 			if(!file.equals(map.getLogoName()) && !file.equals(map.getImageName()) && !file.equalsIgnoreCase("version")) {
 				try {
